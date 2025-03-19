@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fusionador d'App Inventor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f0f8ff;
+      min-height: 100vh;
+      font-family: 'Arial', sans-serif;
+    }
+    .header {
+      background: #4a90e2;
+      color: white;
+      padding: 3rem 0;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .project-card {
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .merge-btn {
+      background: #28a745;
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-size: 1.25rem;
+      transition: all 0.3s ease;
+      border: none;
+    }
+    .merge-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+    }
+    .file-input-label {
+      background: #4a90e2;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .file-input-label:hover {
+      background: #357abd;
+    }
+    .footer {
+      margin-top: 2rem;
+      text-align: center;
+      color: #666;
+    }
+    .github-btn {
+      color: #4a90e2;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .github-btn:hover {
+      color: #357abd;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1><i class="fas fa-code-merge"></i> Fusionador d'App Inventor</h1>
+    <p class="lead">Combina els teus projectes .aia de manera ràpida i segura</p>
+  </header>
+
+  <main class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div id="projects-container"></div>
+        <button class="btn btn-secondary mt-2" onclick="addProject()">
+          <i class="fas fa-plus"></i> Afegeix un Projecte
+        </button>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-12 text-center">
+        <button class="btn btn-success merge-btn" onclick="mergeProjects()">
+          <i class="fas fa-magic"></i> Fusiona Projectes
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Fet per SirHumza | 
+      <a href="https://github.com/SirHumza/AppInventor-Fusion" class="github-btn" target="_blank">
+        <i class="fab fa-github"></i> Codi a GitHub
+      </a>
+    </p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script>
+    // Array que almacena los proyectos cargados
+    let projects = [];
+
+    // Agrega un nuevo proyecto a la interfaz
+    function addProject() {
+      const container = document.getElementById('projects-container');
+      const projectId = `project-${projects.length}`;
+
+      const projectHtml = `
+        <div class="project-card" id="${projectId}">
+          <h4>Projecte ${projects.length + 1}</h4>
+          <label class="file-input-label d-block text-center mb-3">
+            <i class="fas fa-file-upload"></i> Puja un fitxer .aia
+            <input type="file" class="d-none" accept=".aia" onchange="loadProject(event, '${projectId}')">
+          </label>
+          <div class="project-content" style="display: none;">
+            <h5>Pantalles</h5>
+            <div class="screens-list mb-3"></div>
+            <h5>Recursos</h5>
+            <div class="assets-list"></div>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', projectHtml);
+      projects.push({ id: projectId, screens: [], assets: [], zip: null });
+    }
+
+    // Carga el proyecto y extrae las pantallas y recursos
+    async function loadProject(event, projectId) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const project = projects.find(p => p.id === projectId);
+        // Cargamos el archivo .aia (ZIP) y lo almacenamos
+        project.zip = await JSZip.loadAsync(file);
+
+        project.screens = [];
+        project.assets = [];
+        project.zip.forEach((relativePath, file) => {
+          if (relativePath.endsWith('.scm')) {
+            // Extraemos el nombre de la pantalla y lo almacenamos
+            const screenName = relativePath.split('/').pop().replace('.scm', '');
+            if (!project.screens.includes(screenName)) {
+              project.screens.push(screenName);
+            }
+          } else if (relativePath.startsWith('assets/')) {
+            const assetName = relativePath.split('/').pop();
+            if (!project.assets.includes(assetName)) {
+              project.assets.push(assetName);
+            }
+          }
+        });
+
+        // Mostramos la sección de contenido del proyecto
+        const projectDiv = document.getElementById(projectId);
+        projectDiv.querySelector('.project-content').style.display = 'block';
+        renderCheckboxes(projectDiv, project);
+      } catch (error) {
+        alert(`Error carregant el projecte: ${error.message}`);
+      }
+    }
+
+    // Renderiza los checkboxes para seleccionar pantallas y recursos
+    function renderCheckboxes(projectDiv, project) {
+      const screensList = projectDiv.querySelector('.screens-list');
+      const assetsList = projectDiv.querySelector('.assets-list');
+
+      screensList.innerHTML = project.screens.map(screen => `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="${screen}" checked>
+          <label class="form-check-label" for="${screen}">${screen}</label>
+        </div>
+      `).join('');
+
+      assetsList.innerHTML = project.assets.map(asset => `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="${asset}" checked>
+          <label class="form-check-label" for="${asset}">${asset}</label>
+        </div>
+      `).join('');
+    }
+
+    // Fusiona todos los proyectos cargados en un solo archivo .aia
+    async function mergeProjects() {
+      if (projects.length < 2) {
+        alert("Necessites afegir almenys dos projectes per fusionar.");
+        return;
+      }
+
+      // Creamos un nuevo ZIP para el proyecto fusionado
+      const mergedZip = new JSZip();
+
+      // Agregamos el archivo project.properties básico
+      const propertiesContent = `#Project properties
+#Wed Jan 01 00:00:00 GMT 2023
+name=ProjecteFusionat
+`;
+      mergedZip.file("youngandroidproject/project.properties", propertiesContent);
+
+      // Iteramos sobre cada proyecto cargado
+      for (const project of projects) {
+        if (!project.zip) continue; // Saltamos proyectos no cargados
+
+        // Usamos el objeto ZIP ya cargado en vez de recargar desde el input
+        const zip = project.zip;
+
+        // Procesamos las pantallas
+        const projectDiv = document.getElementById(project.id);
+        const screenCheckboxes = projectDiv.querySelectorAll('.screens-list input[type="checkbox"]');
+        for (const checkbox of screenCheckboxes) {
+          if (checkbox.checked) {
+            const screenName = checkbox.id;
+            await addFileToZip(zip, mergedZip, `src/${screenName}.scm`, `src/${screenName}.scm`);
+            // Solo se agrega el .bky si existe
+            await addFileToZip(zip, mergedZip, `src/${screenName}.bky`, `src/${screenName}.bky`);
+          }
+        }
+
+        // Procesamos los recursos
+        const assetCheckboxes = projectDiv.querySelectorAll('.assets-list input[type="checkbox"]');
+        for (const checkbox of assetCheckboxes) {
+          if (checkbox.checked) {
+            const assetName = checkbox.id;
+            await addFileToZip(zip, mergedZip, `assets/${assetName}`, `assets/${assetName}`);
+          }
+        }
+      }
+
+      // Generamos el archivo fusionado y lo descargamos
+      try {
+        const content = await mergedZip.generateAsync({ type: 'blob' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `projecte-fusionat-${Date.now()}.aia`;
+        link.click();
+      } catch (error) {
+        alert(`Error durant la fusió: ${error.message}`);
+      }
+    }
+
+    // Función auxiliar para agregar archivos de un ZIP a otro
+    async function addFileToZip(sourceZip, targetZip, originalPath, newPath) {
+      const file = sourceZip.file(originalPath);
+      if (file) {
+        const content = await file.async('uint8array');
+        targetZip.file(newPath, content);
+      }
+    }
+
+    // Agregamos el primer proyecto por defecto al cargar la página
+    addProject();
+  </script>
+</body>
+</html>
