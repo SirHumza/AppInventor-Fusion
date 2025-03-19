@@ -175,6 +175,11 @@
 
         // Fusionar projectes
         async function mergeProjects() {
+            if (projects.length < 2) {
+                alert("Necessites afegir almenys dos projectes per fusionar.");
+                return;
+            }
+
             const mergedZip = new JSZip();
 
             // Afegir el fitxer `youngandroidproject/project.properties`
