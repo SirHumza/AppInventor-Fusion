@@ -13,23 +13,7 @@ Eina lliure i oberta per fusionar projectes d'App Inventor (.aia) de manera ràp
 1. **Puja projectes**: Arrossega els teus fitxers .aia
 2. **Selecciona elements**: Tria quines pantalles i recursos vols incloure
 3. **Fusiona**: Clica el botó i obtén el teu projecte unificat
-4. **Descarrega**: El teu nou projecte .aia estarà llest en segons
-
-## 🛠️ Tecnologia
-
-- **JavaScript**: Per a la lògica de fusió
-- **JSZip**: Per a la manipulació de fitxers .aia
-- **Bootstrap**: Per a la interfície d'usuari
-- **Font Awesome**: Per a les icones visuals
-
-## 📦 Instal·lació
-
-No cal instal·lar res! Només necessites:
-
-1. Un navegador modern (Chrome, Firefox, Edge)
-2. Els teus fitxers .aia
-
-
+4. **Descarrega**: El teu nou projecte .aia estarà llest en segons.
 
 ## 📜 Llicència
 
