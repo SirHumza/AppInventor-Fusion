@@ -1,179 +1,282 @@
-async function mergeProjects() {
-    try {
-        // Reiniciar estado
-        screenRenames.clear();
-        resetProgressBar();
-        logToConsole("🚀 Iniciant procés de fusió avançat...", 'info');
-
-        // Verificar proyectos cargados
-        if (!mainProject.zip || !secondProject.zip) {
-            throw new Error("Cal carregar ambdós projectes abans de fusionar");
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fusionador App Inventor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1976d2;
+            --text: #2d3748;
+            --border: #e2e8f0;
+            --background: #ffffff;
         }
 
-        // Crear ZIP fusionat
-        const mergedZip = new JSZip();
-        logToConsole("🔧 Creant estructura bàsica del projecte...", 'info');
-        mergedZip.file("youngandroidproject/project.properties", `#Project properties\nname=ProjecteFusionat\n`);
-
-        // Recopilar elementos seleccionados
-        const selected = {
-            main: {
-                screens: getSelectedElements('main', 'screen'),
-                assets: getSelectedElements('main', 'asset')
-            },
-            second: {
-                screens: getSelectedElements('second', 'screen'),
-                assets: getSelectedElements('second', 'asset')
-            }
-        };
-
-        // Detección avanzada de conflictos
-        logToConsole("🔍 Analitzant conflictes potencials...", 'info');
-        const conflictReport = analyzeConflicts(selected.main.screens, selected.second.screens);
-        if (conflictReport.total > 0) {
-            logToConsole(`⚠️ S'han detectat ${conflictReport.total} conflictes:`, 'warning');
-            conflictReport.conflicts.forEach(c => 
-                logToConsole(`• ${c.type}: ${c.name} → ${c.newName}`, 'warning'));
+        body {
+            background: var(--background);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
         }
 
-        // Procesamiento optimizado con Promise.all()
-        logToConsole("⚙️ Processant continguts dels projectes...", 'info');
-        await processProjectContent('main', selected.main, mergedZip, conflictReport);
-        await processProjectContent('second', selected.second, mergedZip, conflictReport);
+        .container {
+            max-width: 1200px;
+            padding: 2rem 1rem;
+        }
 
-        // Generar archivo final
-        logToConsole("📦 Generant fitxer .aia fusionat...", 'info');
-        const content = await mergedZip.generateAsync({ type: "blob" });
-        
-        // Descarga automática
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(content);
-        link.download = `projecte_fusionat_${new Date().toISOString().slice(0,10)}.aia`;
-        link.click();
-        
-        logToConsole("✅ Fusió completada amb èxit!", 'success');
-        simulateProgress(100, 100, 500);
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
 
-    } catch (error) {
-        logToConsole(`❌ Error crític: ${error.message}`, 'error');
-        resetProgressBar();
-    }
-}
+        .title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
 
-// Función auxiliar moderna para procesar contenido
-async function processProjectContent(projectType, selected, mergedZip, conflictReport) {
-    const project = projectType === 'main' ? mainProject : secondProject;
-    const processor = new ProjectProcessor(project.zip, mergedZip, conflictReport);
-    
-    await Promise.all([
-        processor.processScreens(selected.screens),
-        processor.processAssets(selected.assets)
-    ]);
-}
+        .project-card {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: box-shadow 0.2s ease;
+        }
 
-class ProjectProcessor {
-    constructor(sourceZip, targetZip, conflictReport) {
-        this.sourceZip = sourceZip;
-        this.targetZip = targetZip;
-        this.conflictReport = conflictReport;
-    }
+        .project-card:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
 
-    async processScreens(screens) {
-        return Promise.all(screens.map(async screen => {
-            const processed = await this.processScreen(screen);
-            this.addScreenToZip(processed);
-        }));
-    }
+        .file-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
 
-    async processScreen(screen) {
-        const originalName = screen.name;
-        const newName = this.conflictReport.renames[originalName] || originalName;
-        
-        const [scmContent, bkyContent] = await Promise.all([
-            this.getFileContent(screen.scmPath),
-            this.getFileContent(screen.bkyPath)
-        ]);
+        .file-input:hover {
+            border-color: var(--primary);
+        }
 
-        return {
-            originalName,
-            newName,
-            scmContent: this.adaptScreenContent(scmContent, newName),
-            bkyContent: this.adaptScreenContent(bkyContent, newName),
-            paths: this.getNewPaths(screen, newName)
-        };
-    }
+        .checklist {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
 
-    adaptScreenContent(content, newName) {
-        return content
-            .replace(/"\$Name"\s*:\s*"([^"]*)"/g, `"$Name":"${newName}"`)
-            .replace(/"Title"\s*:\s*"([^"]*)"/g, `"Title":"${newName}"`);
-    }
+        .merge-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: opacity 0.2s ease;
+        }
 
-    getNewPaths(screen, newName) {
-        return {
-            scm: screen.scmPath.replace(screen.name, newName),
-            bky: screen.bkyPath.replace(screen.name, newName)
-        };
-    }
+        .merge-btn:hover {
+            opacity: 0.9;
+        }
 
-    addScreenToZip(processed) {
-        this.targetZip.file(processed.paths.scm, processed.scmContent);
-        this.targetZip.file(processed.paths.bky, processed.bkyContent);
-    }
+        .status-container {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            min-height: 120px;
+        }
 
-    async processAssets(assets) {
-        return Promise.all(assets.map(async asset => {
-            const content = await this.getFileContent(asset.path);
-            this.targetZip.file(asset.path, content);
-        }));
-    }
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Fusionador de Projectes</h1>
+            <p>Combina projectes d'App Inventor de manera senzilla</p>
+        </div>
 
-    async getFileContent(path) {
-        const file = this.sourceZip.file(path);
-        if (!file) throw new Error(`Fitxer no trobat: ${path}`);
-        return file.async('string');
-    }
-}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="project-card">
+                    <h3>Projecte Principal</h3>
+                    <input type="file" class="file-input" id="mainProject" accept=".aia">
+                    <div class="mt-3">
+                        <h4>Pantalles</h4>
+                        <div id="mainScreens" class="checklist"></div>
+                    </div>
+                    <div class="mt-3">
+                        <h4>Recursos</h4>
+                        <div id="mainAssets" class="checklist"></div>
+                    </div>
+                </div>
+            </div>
 
-// Análisis moderno de conflictos
-function analyzeConflicts(mainScreens, secondScreens) {
-    const report = {
-        total: 0,
-        conflicts: [],
-        renames: {}
-    };
-    
-    const allNames = new Set(mainScreens.map(s => s.name));
-    
-    secondScreens.forEach(screen => {
-        if (allNames.has(screen.name)) {
-            const newName = generateUniqueName(screen.name, allNames);
-            report.total++;
-            report.conflicts.push({
-                type: 'Pantalla',
-                name: screen.name,
-                newName: newName
+            <div class="col-md-6">
+                <div class="project-card">
+                    <h3>Projecte Secundari</h3>
+                    <input type="file" class="file-input" id="secondProject" accept=".aia">
+                    <div class="mt-3">
+                        <h4>Pantalles</h4>
+                        <div id="secondScreens" class="checklist"></div>
+                    </div>
+                    <div class="mt-3">
+                        <h4>Recursos</h4>
+                        <div id="secondAssets" class="checklist"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <button class="merge-btn" onclick="mergeProjects()">
+                    Fusionar Projectes
+                </button>
+            </div>
+        </div>
+
+        <div class="status-container" id="status">
+            <div class="alert alert-info">
+                Selecciona els projectes per començar
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Fet per SirHumza | 
+                <a href="https://github.com/SirHumza/AppInventor-Fusion" target="_blank">
+                    Codi a GitHub
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script>
+        let mainProject = { zip: null, screens: [], assets: [] };
+        let secondProject = { zip: null, screens: [], assets: [] };
+
+        // Funciones básicas de actualización de UI
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function updateChecklist(containerId, items, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.map(item => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" 
+                           id="${item.name}" checked>
+                    <label class="form-check-label">
+                        ${item.name}
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        // Procesamiento de archivos .aia
+        async function processAIA(file) {
+            const project = { zip: null, screens: [], assets: [] };
+            const zip = await JSZip.loadAsync(file);
+            project.zip = zip;
+
+            zip.forEach((relativePath) => {
+                if (relativePath.startsWith('src/') && relativePath.endsWith('.scm')) {
+                    const name = relativePath.split('/').pop().replace('.scm', '');
+                    project.screens.push({
+                        name,
+                        scmPath: relativePath,
+                        bkyPath: relativePath.replace('.scm', '.bky')
+                    });
+                } else if (relativePath.startsWith('assets/')) {
+                    project.assets.push({
+                        name: relativePath.split('/').pop(),
+                        path: relativePath
+                    });
+                }
             });
-            report.renames[screen.name] = newName;
-            allNames.add(newName);
+
+            return project;
         }
-    });
-    
-    return report;
-}
 
-function generateUniqueName(baseName, existingNames, counter = 1) {
-    const newName = `${baseName}_${counter}`;
-    return existingNames.has(newName) 
-        ? generateUniqueName(baseName, existingNames, counter + 1)
-        : newName;
-}
-
-function getSelectedElements(projectType, elementType) {
-    return [...document.querySelectorAll(`.${elementType}-check[data-project="${projectType}"]:checked`)]
-        .map(checkbox => {
-            const name = checkbox.dataset.name;
-            const path = checkbox.dataset.path;
-            return { name, path };
+        // Event listeners para cargar proyectos
+        document.getElementById('mainProject').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            mainProject = await processAIA(file);
+            updateChecklist('mainScreens', mainProject.screens);
+            updateChecklist('mainAssets', mainProject.assets);
+            updateStatus(`Projecte principal carregat: ${file.name}`);
         });
-}
+
+        document.getElementById('secondProject').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            secondProject = await processAIA(file);
+            updateChecklist('secondScreens', secondProject.screens);
+            updateChecklist('secondAssets', secondProject.assets);
+            updateStatus(`Projecte secundari carregat: ${file.name}`);
+        });
+
+        // Función principal de fusión
+        async function mergeProjects() {
+            if (!mainProject.zip || !secondProject.zip) {
+                updateStatus('Selecciona ambdós projectes per fusionar', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('Processant la fusió...', 'info');
+                
+                const mergedZip = new JSZip();
+                mergedZip.file("youngandroidproject/project.properties", `#Project properties\nname=ProjecteFusionat\n`);
+
+                // Función para procesar elementos
+                const processItems = async (project, isMain) => {
+                    for (const screen of project.screens) {
+                        const scmContent = await project.zip.file(screen.scmPath).async('string');
+                        const bkyContent = await project.zip.file(screen.bkyPath).async('string');
+                        mergedZip.file(screen.scmPath, scmContent);
+                        mergedZip.file(screen.bkyPath, bkyContent);
+                    }
+                    
+                    for (const asset of project.assets) {
+                        const content = await project.zip.file(asset.path).async('uint8array');
+                        mergedZip.file(asset.path, content);
+                    }
+                };
+
+                await processItems(mainProject, true);
+                await processItems(secondProject, false);
+
+                const content = await mergedZip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `projecte_fusionat_${Date.now()}.aia`;
+                link.click();
+                
+                updateStatus('Fusió completada amb èxit!', 'success');
+
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'danger');
+            }
+        }
+    </script>
+</body>
+</html>
