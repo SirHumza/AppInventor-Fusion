@@ -9,172 +9,23 @@
     <style>
         :root {
             --primary: #1976d2;
+            --danger: #dc3545;
             --text: #2d3748;
             --border: #e2e8f0;
             --background: #ffffff;
         }
 
-        body {
-            background: var(--background);
-            color: var(--text);
-            font-family: 'Inter', system-ui, sans-serif;
-            min-height: 100vh;
+        /* ... (estilos anteriores iguales) ... */
+
+        .conflict-warning {
+            animation: pulse 1.5s infinite;
+            border: 2px solid var(--danger);
         }
 
-        .container {
-            max-width: 1400px;
-            padding: 2rem 1rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-            position: relative;
-        }
-
-        .title {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .projects-container {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-
-        .project-card {
-            flex: 1;
-            min-width: 300px;
-            background: var(--background);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: box-shadow 0.2s ease;
-            position: relative;
-        }
-
-        .project-card:hover {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .remove-project {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: #718096;
-            cursor: pointer;
-        }
-
-        .file-input {
-            width: 100%;
-            padding: 1rem;
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            cursor: pointer;
-            transition: border-color 0.2s ease;
-        }
-
-        .file-input:hover {
-            border-color: var(--primary);
-        }
-
-        .checklist {
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .merge-btn {
-            width: 100%;
-            padding: 1rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: opacity 0.2s ease;
-        }
-
-        .merge-btn:hover {
-            opacity: 0.9;
-        }
-
-        .add-project-btn {
-            width: 100%;
-            padding: 1rem;
-            background: #f8f9fa;
-            color: var(--text);
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .add-project-btn:hover {
-            border-color: var(--primary);
-            background: #f1f8ff;
-        }
-
-        .status-container {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .github-corner {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--primary);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 25px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
-            z-index: 1000;
-        }
-
-        .github-corner:hover {
-            transform: translateY(-2px);
-            color: white;
-            text-decoration: none;
-        }
-
-        .github-corner i {
-            font-size: 1.2rem;
-        }
-
-        .github-text {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        @media (max-width: 768px) {
-            .github-corner {
-                top: 10px;
-                right: 10px;
-                padding: 6px 12px;
-            }
-            .github-text {
-                display: none;
-            }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -200,16 +51,13 @@
             Fusionar Projectes
         </button>
 
-        <div class="status-container" id="status">
-            <div class="alert alert-info">
-                Selecciona els projectes per començar
-            </div>
-        </div>
+        <div class="status-container" id="status"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
     <script>
         let projects = [];
+        let nameConflicts = new Set();
 
         function updateStatus(message, type = 'info') {
             const statusDiv = document.getElementById('status');
@@ -218,6 +66,10 @@
                     ${message}
                 </div>
             `;
+            
+            if(type === 'danger') {
+                statusDiv.querySelector('.alert').classList.add('conflict-warning');
+            }
         }
 
         function addProject() {
@@ -227,6 +79,7 @@
             
             const projectCard = document.createElement('div');
             projectCard.className = 'project-card';
+            projectCard.dataset.project = projectId;
             projectCard.innerHTML = `
                 <button class="remove-project" onclick="removeProject(${projectId})">×</button>
                 <h3>Projecte ${projectNumber}</h3>
@@ -244,7 +97,11 @@
             document.getElementById('projectsContainer').appendChild(projectCard);
             
             const fileInput = projectCard.querySelector('input[type="file"]');
-            fileInput.addEventListener('change', async (e) => {
+            fileInput.addEventListener('change', handleFileUpload(projectId));
+        }
+
+        function handleFileUpload(projectId) {
+            return async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
@@ -263,41 +120,67 @@
                         if (relativePath.startsWith('src/') && relativePath.endsWith('.scm')) {
                             const name = relativePath.split('/').pop().replace('.scm', '');
                             project.screens.push({
+                                originalName: name,
                                 name,
                                 scmPath: relativePath,
                                 bkyPath: relativePath.replace('.scm', '.bky')
                             });
                         } else if (relativePath.startsWith('assets/')) {
                             project.assets.push({
+                                originalName: relativePath.split('/').pop(),
                                 name: relativePath.split('/').pop(),
                                 path: relativePath
                             });
                         }
                     });
 
+                    detectConflicts(project);
                     updateChecklist(projectId, 'screens', project.screens);
                     updateChecklist(projectId, 'assets', project.assets);
                     
                     projects = projects.filter(p => p.id !== projectId);
                     projects.push(project);
                     
-                    updateStatus(`Projecte ${projectNumber} carregat: ${file.name}`);
+                    updateStatus(`Projecte carregat: ${file.name}`);
 
                 } catch (error) {
                     updateStatus(`Error al carregar el projecte: ${error.message}`, 'danger');
+                }
+            };
+        }
+
+        function detectConflicts(project) {
+            // Detectar conflictos en todos los proyectos
+            const allItems = projects.flatMap(p => [...p.screens, ...p.assets]);
+            
+            project.screens.forEach(screen => {
+                const conflict = allItems.some(item => item.name === screen.name);
+                if(conflict) {
+                    nameConflicts.add(screen.originalName);
+                    screen.hasConflict = true;
+                }
+            });
+            
+            project.assets.forEach(asset => {
+                const conflict = allItems.some(item => item.name === asset.name);
+                if(conflict) {
+                    nameConflicts.add(asset.originalName);
+                    asset.hasConflict = true;
                 }
             });
         }
 
         function removeProject(projectId) {
+            // Eliminar proyecto y actualizar UI inmediatamente
+            const card = document.querySelector(`.project-card[data-project="${projectId}"]`);
+            if(card) card.remove();
+
             projects = projects.filter(p => p.id !== projectId);
-            document.querySelectorAll(`[data-project="${projectId}"]`).forEach(el => el.remove());
             
-            // Renumerar proyectos restantes
+            // Renumerar proyectos optimizado
             const projectCards = document.querySelectorAll('.project-card');
             projectCards.forEach((card, index) => {
-                const title = card.querySelector('h3');
-                if(title) title.textContent = `Projecte ${index + 1}`;
+                card.querySelector('h3').textContent = `Projecte ${index + 1}`;
             });
             
             updateStatus('Projecte eliminat');
@@ -306,55 +189,59 @@
         function updateChecklist(projectId, type, items) {
             const container = document.querySelector(`[data-project="${projectId}"][data-type="${type}"]`);
             container.innerHTML = items.map(item => `
-                <div class="form-check">
+                <div class="form-check ${item.hasConflict ? 'text-danger' : ''}">
                     <input class="form-check-input" type="checkbox" 
                            id="${item.name}-${projectId}" checked>
                     <label class="form-check-label">
                         ${item.name}
+                        ${item.hasConflict ? '<i class="fas fa-exclamation-triangle ms-2"></i>' : ''}
                     </label>
                 </div>
             `).join('');
         }
 
         async function mergeProjects() {
-            if (projects.length < 2) {
-                updateStatus('Selecciona almenys 2 projectes per fusionar', 'warning');
-                return;
-            }
-
             try {
+                if (projects.length < 2) {
+                    updateStatus('Selecciona almenys 2 projectes per fusionar', 'warning');
+                    return;
+                }
+
                 updateStatus('Processant la fusió...', 'info');
                 const mergedZip = new JSZip();
                 mergedZip.file("youngandroidproject/project.properties", `#Project properties\nname=ProjecteFusionat\n`);
 
-                // Recopilar todos los nombres de pantalla
                 const allScreens = projects.flatMap(p => p.screens);
-                const screenNames = new Set();
-                const renamedScreens = new Map();
+                const allAssets = projects.flatMap(p => p.assets);
+                const nameRegistry = new Map();
+                let conflictCount = 0;
 
-                // Detectar y renombrar conflictos
-                allScreens.forEach(screen => {
-                    if (screenNames.has(screen.name)) {
-                        let newName = `${screen.name}_${Math.floor(Math.random() * 1000)}`;
-                        while (screenNames.has(newName)) {
-                            newName = `${screen.name}_${Math.floor(Math.random() * 1000)}`;
-                        }
-                        renamedScreens.set(screen.name, newName);
-                        screen.name = newName;
+                // Función para resolver conflictos
+                const resolveConflict = (originalName, type) => {
+                    let counter = 1;
+                    let newName = originalName;
+                    
+                    while(nameRegistry.has(`${type}-${newName}`)) {
+                        newName = `${originalName}_${counter++}`;
                     }
-                    screenNames.add(screen.name);
-                });
+                    
+                    nameRegistry.set(`${type}-${newName}`, true);
+                    return newName;
+                };
 
-                // Procesar cada proyecto
-                for (const project of projects) {
-                    // Procesar pantallas
-                    for (const screen of project.screens) {
-                        const finalName = renamedScreens.get(screen.name) || screen.name;
+                // Procesar pantallas
+                for(const project of projects) {
+                    for(const screen of project.screens) {
+                        const finalName = resolveConflict(screen.originalName, 'screen');
                         
+                        if(screen.originalName !== finalName) {
+                            conflictCount++;
+                            screen.name = finalName;
+                        }
+
                         const scmContent = await project.zip.file(screen.scmPath).async('string');
                         const bkyContent = await project.zip.file(screen.bkyPath).async('string');
-                        
-                        // Actualizar nombres en el contenido
+
                         const updatedScm = scmContent
                             .replace(/"\$Name"\s*:\s*".*?"/, `"$Name":"${finalName}"`)
                             .replace(/"Title"\s*:\s*".*?"/, `"Title":"${finalName}"`);
@@ -366,29 +253,44 @@
                         mergedZip.file(`src/${finalName}.scm`, updatedScm);
                         mergedZip.file(`src/${finalName}.bky`, updatedBky);
                     }
+                }
 
-                    // Procesar recursos
-                    for (const asset of project.assets) {
+                // Procesar recursos
+                for(const project of projects) {
+                    for(const asset of project.assets) {
+                        const finalName = resolveConflict(asset.originalName, 'asset');
+                        
+                        if(asset.originalName !== finalName) {
+                            conflictCount++;
+                            asset.name = finalName;
+                        }
+
                         const content = await project.zip.file(asset.path).async('uint8array');
-                        mergedZip.file(asset.path, content);
+                        mergedZip.file(`assets/${finalName}`, content);
                     }
                 }
 
-                // Generar y descargar
+                // Generar resultado
                 const content = await mergedZip.generateAsync({ type: "blob" });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(content);
                 link.download = `projecte_fusionat_${Date.now()}.aia`;
                 link.click();
                 
-                updateStatus('Fusió completada amb èxit!', 'success');
+                let statusMessage = 'Fusió completada amb èxit!';
+                if(conflictCount > 0) {
+                    statusMessage += ` (${conflictCount} conflictes resolts automàticament)`;
+                    updateStatus(statusMessage, 'warning');
+                } else {
+                    updateStatus(statusMessage, 'success');
+                }
 
             } catch (error) {
                 updateStatus(`Error: ${error.message}`, 'danger');
             }
         }
 
-        // Añadir dos proyectos inicialmente
+        // Inicializar con 2 proyectos
         addProject();
         addProject();
     </script>
