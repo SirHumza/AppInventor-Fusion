@@ -5,186 +5,788 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fusionador d'App Inventor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
     <style>
-        .project-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+        :root {
+            --primary-color: #00f7ff;
+            --secondary-color: #7700ff;
+            --background-dark: #121212;
+            --card-dark: #1e1e1e;
+            --text-color: #e0e0e0;
+            --success-color: #00ff9d;
+            --warning-color: #ffcc00;
+            --danger-color: #ff3860;
         }
+        
+        body {
+            background-color: var(--background-dark);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+            padding-bottom: 60px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        .page-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            position: relative;
+            text-shadow: 0 0 10px rgba(0, 247, 255, 0.3);
+            animation: pulse 3s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        .project-card {
+            background: var(--card-dark);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .project-card:hover {
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 247, 255, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .project-card h3 {
+            color: var(--primary-color);
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 20px;
+            font-weight: 500;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+        }
+        
         .merge-btn {
+            background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
             width: 100%;
             padding: 15px;
             font-size: 1.2em;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 500;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 247, 255, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .merge-btn:hover {
+            box-shadow: 0 8px 25px rgba(0, 247, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .merge-btn:hover::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            animation: shineEffect 1.5s forwards;
+        }
+        
+        @keyframes shineEffect {
+            0% { transform: translateX(-100%) rotate(30deg); }
+            100% { transform: translateX(100%) rotate(30deg); }
+        }
+        
         .file-input {
             margin-bottom: 15px;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
         }
+        
+        .file-input::file-selector-button {
+            background-color: var(--primary-color);
+            color: black;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            margin-right: 15px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .file-input::file-selector-button:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
         .footer {
             margin-top: 30px;
             text-align: center;
-            color: #666;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            left: 0;
         }
+        
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .footer a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+        
         .checklist {
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            margin-top: 15px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.3);
+        }
+        
+        .checklist::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .checklist::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+        
+        .checklist::-webkit-scrollbar-track {
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* Console styling */
+        .console-container {
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 30px;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 20px rgba(0, 247, 255, 0.2);
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.3);
+        }
+        
+        .console-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .console-container::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+        
+        .console-container::-webkit-scrollbar-track {
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .console-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .console-header .controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .console-header .controls span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .console-header .controls span:nth-child(1) {
+            background-color: var(--danger-color);
+        }
+        
+        .console-header .controls span:nth-child(2) {
+            background-color: var(--warning-color);
+        }
+        
+        .console-header .controls span:nth-child(3) {
+            background-color: var(--success-color);
+        }
+        
+        .console-content {
+            padding: 0 5px;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeIn 0.5s forwards;
+            line-height: 1.4;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .log-entry.info {
+            color: var(--text-color);
+        }
+        
+        .log-entry.success {
+            color: var(--success-color);
+        }
+        
+        .log-entry.warning {
+            color: var(--warning-color);
+        }
+        
+        .log-entry.error {
+            color: var(--danger-color);
+        }
+        
+        .timestamp {
+            color: rgba(255, 255, 255, 0.5);
+            margin-right: 8px;
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background-color: var(--primary-color);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        .console-input {
+            display: flex;
+            margin-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 10px;
+        }
+        
+        .console-input span {
+            color: var(--primary-color);
+            margin-right: 8px;
+        }
+        
+        .console-input input {
+            flex-grow: 1;
+            background-color: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: 'Roboto Mono', monospace;
+            outline: none;
+        }
+        
+        /* Glowing effect for section headers */
+        .section-header {
+            position: relative;
+            margin-bottom: 15px;
+            padding-left: 20px;
+            color: var(--primary-color);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+        }
+        
+        .section-header::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+            animation: pulse 2s infinite;
+        }
+        
+        /* Progress indicator */
+        .progress-container {
+            height: 4px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Special animations */
+        .cyberpunk-glitch {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(0, 247, 255, 0.05) 0%, rgba(119, 0, 255, 0.05) 100%);
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            z-index: -1;
+        }
+        
+        .screen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.03) 0px,
+                rgba(0, 0, 0, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.3;
         }
     </style>
 </head>
 <body class="container py-4">
-    <h1 class="text-center mb-4">Fusionador de Projectes App Inventor</h1>
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div class="screen-overlay"></div>
+    
+    <h1 class="page-title">Fusionador de Projectes App Inventor</h1>
     
     <div class="row">
         <div class="col-md-6">
             <div class="project-card">
-                <h3>Projecte Principal</h3>
+                <h3><i class="fas fa-project-diagram me-2"></i>Projecte Principal</h3>
                 <input type="file" class="form-control file-input" id="mainProject" accept=".aia">
-                <div id="mainScreens" class="checklist mt-3"></div>
-                <div id="mainAssets" class="checklist mt-3"></div>
+                <div class="section-header">Pantalles</div>
+                <div id="mainScreens" class="checklist"></div>
+                <div class="section-header">Recursos</div>
+                <div id="mainAssets" class="checklist"></div>
             </div>
         </div>
         
         <div class="col-md-6">
             <div class="project-card">
-                <h3>Projecte Secundari</h3>
+                <h3><i class="fas fa-code-branch me-2"></i>Projecte Secundari</h3>
                 <input type="file" class="form-control file-input" id="secondProject" accept=".aia">
-                <div id="secondScreens" class="checklist mt-3"></div>
-                <div id="secondAssets" class="checklist mt-3"></div>
+                <div class="section-header">Pantalles</div>
+                <div id="secondScreens" class="checklist"></div>
+                <div class="section-header">Recursos</div>
+                <div id="secondAssets" class="checklist"></div>
             </div>
         </div>
     </div>
 
     <div class="row mt-4">
         <div class="col-md-12 text-center">
-            <button class="btn btn-success merge-btn" onclick="mergeProjects()">
-                Fusionar Projectes
+            <button class="btn merge-btn" onclick="mergeProjects()">
+                <i class="fas fa-atom me-2"></i>Fusionar Projectes
             </button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="console-container" id="console">
+                <div class="console-header">
+                    <div>Terminal System v3.7.8</div>
+                    <div class="controls">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                <div class="console-content" id="consoleContent">
+                    <div class="log-entry info">
+                        <span class="timestamp">[00:00:00]</span>
+                        <span>Sistema iniciat. Esperant projectes...</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="footer">
-        <p>Fet per SirHumza | 
+        <p>
+            <i class="fas fa-code me-1"></i> Fet per SirHumza | 
             <a href="https://github.com/SirHumza/AppInventor-Fusion" target="_blank">
-                Codi a GitHub
+                <i class="fab fa-github me-1"></i>Codi a GitHub
             </a>
         </p>
     </div>
 
+    <div class="cyberpunk-glitch"></div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
     <script>
-        let mainProject = {screens: [], assets: []};
-        let secondProject = {screens: [], assets: []};
+        let mainProject = {zip: null, screens: [], assets: []};
+        let secondProject = {zip: null, screens: [], assets: []};
         let screenRenames = new Map();
+        let progressValue = 0;
+        
+        // Funció per registrar missatges a la consola
+        function logToConsole(message, type = 'info') {
+            const consoleContent = document.getElementById('consoleContent');
+            const now = new Date();
+            const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.style.animationDelay = `${Math.random() * 0.5}s`;
+            
+            // Efecte de writing per al missatge
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'timestamp';
+            timestampSpan.textContent = timestamp;
+            
+            logEntry.appendChild(timestampSpan);
+            consoleContent.appendChild(logEntry);
+            
+            typeText(message, logEntry);
+            
+            // Auto-scroll al fons
+            const consoleContainer = document.getElementById('console');
+            consoleContainer.scrollTop = consoleContainer.scrollHeight;
+        }
+        
+        // Simulació d'escriure text a la consola
+        function typeText(text, container, speed = 5) {
+            let index = 0;
+            const messageSpan = document.createElement('span');
+            container.appendChild(messageSpan);
+            
+            // Crea un cursor parpellejant
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+            container.appendChild(cursor);
+            
+            const interval = setInterval(() => {
+                if (index < text.length) {
+                    messageSpan.textContent += text.charAt(index);
+                    index++;
+                } else {
+                    clearInterval(interval);
+                    container.removeChild(cursor);
+                }
+            }, speed);
+        }
+        
+        // Funció per actualitzar la barra de progrés
+        function updateProgressBar(value) {
+            document.getElementById('progressBar').style.width = `${value}%`;
+            progressValue = value;
+        }
+        
+        // Reinicia la barra de progrés
+        function resetProgressBar() {
+            updateProgressBar(0);
+        }
+        
+        // Simula increment progressiu de la barra de progrés
+        function simulateProgress(startFrom, endAt, duration, callback) {
+            const start = performance.now();
+            const updateProgress = (timestamp) => {
+                const elapsed = timestamp - start;
+                const progress = Math.min(startFrom + ((endAt - startFrom) * elapsed / duration), endAt);
+                
+                updateProgressBar(progress);
+                
+                if (progress < endAt) {
+                    requestAnimationFrame(updateProgress);
+                } else if (callback) {
+                    callback();
+                }
+            };
+            
+            requestAnimationFrame(updateProgress);
+        }
 
         // Carregar projecte principal
         document.getElementById('mainProject').addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            mainProject = await processAIA(file);
-            updateChecklist('mainScreens', mainProject.screens, 'screen');
-            updateChecklist('mainAssets', mainProject.assets, 'asset');
+            if (!file) return;
+            
+            const fileName = file.name;
+            resetProgressBar();
+            logToConsole(`Carregant projecte principal: ${fileName}...`, 'info');
+            
+            try {
+                simulateProgress(0, 40, 1500);
+                
+                logToConsole(`Analitzant estructura del fitxer .aia...`, 'info');
+                mainProject = await processAIA(file);
+                
+                simulateProgress(40, 80, 1000);
+                
+                updateChecklist('mainScreens', mainProject.screens, 'screen');
+                updateChecklist('mainAssets', mainProject.assets, 'asset');
+                
+                logToConsole(`✓ Projecte principal carregat amb èxit`, 'success');
+                logToConsole(`▷ Pantalles trobades: ${mainProject.screens.length}`, 'info');
+                logToConsole(`▷ Recursos trobats: ${mainProject.assets.length}`, 'info');
+                
+                simulateProgress(80, 100, 500, () => {
+                    setTimeout(() => resetProgressBar(), 1000);
+                });
+            } catch (error) {
+                logToConsole(`✗ Error al carregar el projecte: ${error.message}`, 'error');
+                resetProgressBar();
+            }
         });
 
         // Carregar projecte secundari
         document.getElementById('secondProject').addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            secondProject = await processAIA(file);
-            updateChecklist('secondScreens', secondProject.screens, 'screen');
-            updateChecklist('secondAssets', secondProject.assets, 'asset');
+            if (!file) return;
+            
+            const fileName = file.name;
+            resetProgressBar();
+            logToConsole(`Carregant projecte secundari: ${fileName}...`, 'info');
+            
+            try {
+                simulateProgress(0, 40, 1500);
+                
+                logToConsole(`Analitzant estructura del fitxer .aia...`, 'info');
+                secondProject = await processAIA(file);
+                
+                simulateProgress(40, 80, 1000);
+                
+                updateChecklist('secondScreens', secondProject.screens, 'screen');
+                updateChecklist('secondAssets', secondProject.assets, 'asset');
+                
+                logToConsole(`✓ Projecte secundari carregat amb èxit`, 'success');
+                logToConsole(`▷ Pantalles trobades: ${secondProject.screens.length}`, 'info');
+                logToConsole(`▷ Recursos trobats: ${secondProject.assets.length}`, 'info');
+                
+                simulateProgress(80, 100, 500, () => {
+                    setTimeout(() => resetProgressBar(), 1000);
+                });
+            } catch (error) {
+                logToConsole(`✗ Error al carregar el projecte: ${error.message}`, 'error');
+                resetProgressBar();
+            }
         });
 
         async function processAIA(file) {
-            const project = {screens: [], assets: []};
-            const zip = await JSZip.loadAsync(file);
+            const project = {zip: null, screens: [], assets: []};
             
-            zip.forEach((relativePath, zipEntry) => {
-                if (relativePath.startsWith('src/') && relativePath.endsWith('.scm')) {
-                    const screenName = relativePath.split('/').pop().replace('.scm', '');
-                    project.screens.push({
-                        name: screenName,
-                        scmPath: relativePath,
-                        bkyPath: relativePath.replace('.scm', '.bky')
-                    });
-                } else if (relativePath.startsWith('assets/')) {
-                    project.assets.push({
-                        name: zipEntry.name.split('/').pop(),
-                        path: relativePath
-                    });
-                }
-            });
-
-            return project;
+            try {
+                const zip = await JSZip.loadAsync(file);
+                project.zip = zip;
+                
+                let screenCount = 0;
+                let assetCount = 0;
+                
+                const entries = Object.keys(zip.files);
+                logToConsole(`Analitzant ${entries.length} fitxers dins del paquet .aia...`, 'info');
+                
+                zip.forEach((relativePath, zipEntry) => {
+                    if (relativePath.startsWith('src/') && relativePath.endsWith('.scm')) {
+                        const screenName = relativePath.split('/').pop().replace('.scm', '');
+                        project.screens.push({
+                            name: screenName,
+                            scmPath: relativePath,
+                            bkyPath: relativePath.replace('.scm', '.bky')
+                        });
+                        screenCount++;
+                    } else if (relativePath.startsWith('assets/')) {
+                        project.assets.push({
+                            name: zipEntry.name.split('/').pop(),
+                            path: relativePath
+                        });
+                        assetCount++;
+                    }
+                });
+                
+                logToConsole(`Detecció completada: ${screenCount} pantalles i ${assetCount} recursos`, 'info');
+                return project;
+                
+            } catch (error) {
+                logToConsole(`Error en processar el fitxer .aia: ${error.message}`, 'error');
+                throw error;
+            }
         }
 
         function updateChecklist(containerId, items, type) {
             const container = document.getElementById(containerId);
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">Cap element trobat</p>';
+                return;
+            }
+            
             container.innerHTML = items.map(item => `
                 <div class="form-check">
                     <input class="form-check-input ${type}-check" type="checkbox" 
-                           id="${item.name}" data-path="${item.path}" checked>
-                    <label class="form-check-label" for="${item.name}">
-                        ${item.name}${type === 'screen' ? ' (Pantalla)' : ''}
+                           id="${containerId}_${item.name}" data-name="${item.name}" 
+                           data-project="${containerId.includes('main') ? 'main' : 'second'}" checked>
+                    <label class="form-check-label" for="${containerId}_${item.name}">
+                        ${item.name}${type === 'screen' ? ' <span class="text-muted">(Pantalla)</span>' : ''}
                     </label>
                 </div>
             `).join('');
         }
 
         async function mergeProjects() {
-            // Comprovar conflictes
-            const allScreens = [...mainProject.screens, ...secondProject.screens];
-            const screenNames = allScreens.map(s => s.name);
-            const duplicates = screenNames.filter((name, index) => screenNames.indexOf(name) !== index);
-            
-            // Gestionar Screen1 duplicat
-            if (duplicates.includes('Screen1')) {
-                const newName = prompt('Introdueix un nou nom per a Screen1 del segon projecte:');
-                if (newName) screenRenames.set('Screen1', newName);
+            if (!mainProject.zip || !secondProject.zip) {
+                logToConsole("✗ Error: Cal carregar els dos projectes abans de fusionar.", 'error');
+                return;
             }
-
-            // Crear ZIP fusionat
-            const mergedZip = new JSZip();
             
-            // Afegir fitxers de projecte
-            mergedZip.file("youngandroidproject/project.properties", 
-                `#Project properties\nname=ProjecteFusionat\n`);
+            resetProgressBar();
+            logToConsole("Iniciant procés de fusió...", 'info');
+            simulateProgress(0, 10, 500);
             
-            // Processar pantalles
-            await processProject(mainProject, mergedZip);
-            await processProject(secondProject, mergedZip);
-
-            // Generar i descarregar
-            const content = await mergedZip.generateAsync({type: "blob"});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = `projecte_fusionat_${Date.now()}.aia`;
-            link.click();
-        }
-
-        async function processProject(project, zip) {
-            // Processar pantalles seleccionades
-            document.querySelectorAll('.screen-check:checked').forEach(checkbox => {
-                const screen = project.screens.find(s => s.name === checkbox.id);
-                if (screen) {
-                    zip.file(screen.scmPath, getFileContent(project.zip, screen.scmPath));
-                    zip.file(screen.bkyPath, getFileContent(project.zip, screen.bkyPath));
+            try {
+                // Crear ZIP fusionat
+                logToConsole("Creant estructura del nou projecte...", 'info');
+                const mergedZip = new JSZip();
+                
+                // Afegir fitxers de projecte
+                mergedZip.file("youngandroidproject/project.properties", 
+                    `#Project properties\nname=ProjecteFusionat\n`);
+                
+                simulateProgress(10, 20, 500);
+                
+                // Gestionar conflictes de noms automaticament
+                const mainScreenNames = mainProject.screens.map(s => s.name);
+                
+                // Recollir pantalles seleccionades
+                const selectedMainScreens = [...document.querySelectorAll('.screen-check[data-project="main"]:checked')]
+                    .map(cb => mainProject.screens.find(s => s.name === cb.dataset.name));
+                
+                const selectedSecondScreens = [...document.querySelectorAll('.screen-check[data-project="second"]:checked')]
+                    .map(cb => secondProject.screens.find(s => s.name === cb.dataset.name));
+                
+                simulateProgress(20, 30, 500);
+                
+                logToConsole(`Verificant conflictes de nom entre projectes...`, 'info');
+                
+                // Comprovar i resoldre conflictes de noms
+                const conflicts = [];
+                for (const screen of selectedSecondScreens) {
+                    if (mainScreenNames.includes(screen.name)) {
+                        conflicts.push(screen.name);
+                        // Trobat conflicte, assignar nou nom automàticament
+                        let newName;
+                        if (screen.name === 'Screen1') {
+                            newName = getNextScreenName(mainScreenNames, 'Screen');
+                            logToConsole(`! Conflicte detectat amb Screen1, renombrant a ${newName}`, 'warning');
+                        } else {
+                            newName = screen.name + "_2";
+                            logToConsole(`! Conflicte detectat amb ${screen.name}, renombrant a ${newName}`, 'warning');
+                        }
+                        screenRenames.set(screen.name, newName);
+                    }
                 }
-            });
-
-            // Processar recursos seleccionats
-            document.querySelectorAll('.asset-check:checked').forEach(checkbox => {
-                const asset = project.assets.find(a => a.name === checkbox.id);
-                if (asset) {
-                    zip.file(asset.path, getFileContent(project.zip, asset.path));
+                
+                if (conflicts.length > 0) {
+                    logToConsole(`Total de ${conflicts.length} conflictes resolts automàticament`, 'warning');
+                } else {
+                    logToConsole(`No s'han trobat conflictes de nom entre projectes`, 'success');
                 }
-            });
-        }
-
-        async function getFileContent(zip, path) {
-            const file = zip.file(path);
-            return file ? await file.async('uint8array') : null;
-        }
-    </script>
-</body>
-</html>
+                
+                simulateProgress(30, 40, 500);
+                
+                // Processar projecte principal
+                logToConsole(`Processant pantalles del projecte principal...`, 'info');
+                let screenCounter = 0;
+                for (const screen of selectedMainScreens) {
+                    logToConsole(`Processant pantalla: ${screen.name}`, 'info');
+                    
+                    const scmContent = await mainProject.zip.file(screen.scmPath).async('string');
+                    const bkyContent = await mainProject.zip.file(screen.bkyPath).async('string');
+                    
+                    mergedZip.file(screen.scmPath, scmContent);
+                    mergedZip.file(screen.bkyPath, bkyContent);
+                    
+                    screenCounter++;
+                    simulateProgress(40, 50, 1500 * (screenCounter / selectedMainScreens.length));
+                }
+                
+                logToConsole(`✓ ${screenCounter} pantalles del projecte principal processades`, 'success');
+                
+                // Processar projecte secundari (amb gestió de conflictes)
+                logToConsole(`Processant pantalles del projecte secundari...`, 'info');
+                screenCounter = 0;
+                for (const screen of selectedSecondScreens) {
+                    const originalName = screen.name;
+                    const isRenamed = screenRenames.has(originalName);
+                    
+                    if (isRenamed) {
+                        const newName = screenRenames.get(originalName);
+                        logToConsole(`Processant pantalla: ${originalName} → ${newName} (renombrada)`, 'info');
+                    } else {
+                        logToConsole(`Processant pantalla: ${originalName}`, 'info');
+                    }
+                    
+                    let scmContent = await secondProject.zip.file(screen.scmPath).async('string');
+                    let bkyContent = await secondProject.zip.file(screen.bkyPath).async('string');
+                    
+                    let targetScmPath = screen.scmPath;
+                    let targetBkyPath = screen.bkyPath;
