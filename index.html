@@ -1,257 +1,190 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fusionador d'App Inventor</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body {
-      background: #f0f8ff;
-      min-height: 100vh;
-      font-family: 'Arial', sans-serif;
-    }
-    .header {
-      background: #4a90e2;
-      color: white;
-      padding: 3rem 0;
-      margin-bottom: 2rem;
-      text-align: center;
-    }
-    .project-card {
-      background: white;
-      border-radius: 15px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    .merge-btn {
-      background: #28a745;
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 50px;
-      font-size: 1.25rem;
-      transition: all 0.3s ease;
-      border: none;
-    }
-    .merge-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-    }
-    .file-input-label {
-      background: #4a90e2;
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    .file-input-label:hover {
-      background: #357abd;
-    }
-    .footer {
-      margin-top: 2rem;
-      text-align: center;
-      color: #666;
-    }
-    .github-btn {
-      color: #4a90e2;
-      text-decoration: none;
-      transition: color 0.3s ease;
-    }
-    .github-btn:hover {
-      color: #357abd;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fusionador d'App Inventor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .project-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .merge-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+        }
+        .file-input {
+            margin-bottom: 15px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+        }
+        .checklist {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+    </style>
 </head>
-<body>
-  <header class="header">
-    <h1><i class="fas fa-code-merge"></i> Fusionador d'App Inventor</h1>
-    <p class="lead">Combina els teus projectes .aia de manera ràpida i segura</p>
-  </header>
-
-  <main class="container">
+<body class="container py-4">
+    <h1 class="text-center mb-4">Fusionador de Projectes App Inventor</h1>
+    
     <div class="row">
-      <div class="col-md-12">
-        <div id="projects-container"></div>
-        <button class="btn btn-secondary mt-2" onclick="addProject()">
-          <i class="fas fa-plus"></i> Afegeix un Projecte
-        </button>
-      </div>
+        <div class="col-md-6">
+            <div class="project-card">
+                <h3>Projecte Principal</h3>
+                <input type="file" class="form-control file-input" id="mainProject" accept=".aia">
+                <div id="mainScreens" class="checklist mt-3"></div>
+                <div id="mainAssets" class="checklist mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="project-card">
+                <h3>Projecte Secundari</h3>
+                <input type="file" class="form-control file-input" id="secondProject" accept=".aia">
+                <div id="secondScreens" class="checklist mt-3"></div>
+                <div id="secondAssets" class="checklist mt-3"></div>
+            </div>
+        </div>
     </div>
 
     <div class="row mt-4">
-      <div class="col-md-12 text-center">
-        <button class="btn btn-success merge-btn" onclick="mergeProjects()">
-          <i class="fas fa-magic"></i> Fusiona Projectes
-        </button>
-      </div>
-    </div>
-  </main>
-
-  <footer class="footer">
-    <p>Fet per SirHumza | 
-      <a href="https://github.com/SirHumza/AppInventor-Fusion" class="github-btn" target="_blank">
-        <i class="fab fa-github"></i> Codi a GitHub
-      </a>
-    </p>
-  </footer>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-  <script>
-    // Array que almacena los proyectos cargados
-    let projects = [];
-
-    // Agrega un nuevo proyecto a la interfaz
-    function addProject() {
-      const container = document.getElementById('projects-container');
-      const projectId = `project-${projects.length}`;
-
-      const projectHtml = `
-        <div class="project-card" id="${projectId}">
-          <h4>Projecte ${projects.length + 1}</h4>
-          <label class="file-input-label d-block text-center mb-3">
-            <i class="fas fa-file-upload"></i> Puja un fitxer .aia
-            <input type="file" class="d-none" accept=".aia" onchange="loadProject(event, '${projectId}')">
-          </label>
-          <div class="project-content" style="display: none;">
-            <h5>Pantalles</h5>
-            <div class="screens-list mb-3"></div>
-            <h5>Recursos</h5>
-            <div class="assets-list"></div>
-          </div>
+        <div class="col-md-12 text-center">
+            <button class="btn btn-success merge-btn" onclick="mergeProjects()">
+                Fusionar Projectes
+            </button>
         </div>
-      `;
-      container.insertAdjacentHTML('beforeend', projectHtml);
-      projects.push({ id: projectId, screens: [], assets: [], zip: null });
-    }
+    </div>
 
-    // Carga el proyecto y extrae las pantallas y recursos
-    async function loadProject(event, projectId) {
-      const file = event.target.files[0];
-      if (!file) return;
+    <div class="footer">
+        <p>Fet per SirHumza | 
+            <a href="https://github.com/SirHumza/AppInventor-Fusion" target="_blank">
+                Codi a GitHub
+            </a>
+        </p>
+    </div>
 
-      try {
-        const project = projects.find(p => p.id === projectId);
-        // Cargamos el archivo .aia (ZIP) y lo almacenamos
-        project.zip = await JSZip.loadAsync(file);
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script>
+        let mainProject = {screens: [], assets: []};
+        let secondProject = {screens: [], assets: []};
+        let screenRenames = new Map();
 
-        project.screens = [];
-        project.assets = [];
-        project.zip.forEach((relativePath, file) => {
-          if (relativePath.endsWith('.scm')) {
-            // Extraemos el nombre de la pantalla y lo almacenamos
-            const screenName = relativePath.split('/').pop().replace('.scm', '');
-            if (!project.screens.includes(screenName)) {
-              project.screens.push(screenName);
-            }
-          } else if (relativePath.startsWith('assets/')) {
-            const assetName = relativePath.split('/').pop();
-            if (!project.assets.includes(assetName)) {
-              project.assets.push(assetName);
-            }
-          }
+        // Carregar projecte principal
+        document.getElementById('mainProject').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            mainProject = await processAIA(file);
+            updateChecklist('mainScreens', mainProject.screens, 'screen');
+            updateChecklist('mainAssets', mainProject.assets, 'asset');
         });
 
-        // Mostramos la sección de contenido del proyecto
-        const projectDiv = document.getElementById(projectId);
-        projectDiv.querySelector('.project-content').style.display = 'block';
-        renderCheckboxes(projectDiv, project);
-      } catch (error) {
-        alert(`Error carregant el projecte: ${error.message}`);
-      }
-    }
+        // Carregar projecte secundari
+        document.getElementById('secondProject').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            secondProject = await processAIA(file);
+            updateChecklist('secondScreens', secondProject.screens, 'screen');
+            updateChecklist('secondAssets', secondProject.assets, 'asset');
+        });
 
-    // Renderiza los checkboxes para seleccionar pantallas y recursos
-    function renderCheckboxes(projectDiv, project) {
-      const screensList = projectDiv.querySelector('.screens-list');
-      const assetsList = projectDiv.querySelector('.assets-list');
+        async function processAIA(file) {
+            const project = {screens: [], assets: []};
+            const zip = await JSZip.loadAsync(file);
+            
+            zip.forEach((relativePath, zipEntry) => {
+                if (relativePath.startsWith('src/') && relativePath.endsWith('.scm')) {
+                    const screenName = relativePath.split('/').pop().replace('.scm', '');
+                    project.screens.push({
+                        name: screenName,
+                        scmPath: relativePath,
+                        bkyPath: relativePath.replace('.scm', '.bky')
+                    });
+                } else if (relativePath.startsWith('assets/')) {
+                    project.assets.push({
+                        name: zipEntry.name.split('/').pop(),
+                        path: relativePath
+                    });
+                }
+            });
 
-      screensList.innerHTML = project.screens.map(screen => `
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="${screen}" checked>
-          <label class="form-check-label" for="${screen}">${screen}</label>
-        </div>
-      `).join('');
-
-      assetsList.innerHTML = project.assets.map(asset => `
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="${asset}" checked>
-          <label class="form-check-label" for="${asset}">${asset}</label>
-        </div>
-      `).join('');
-    }
-
-    // Fusiona todos los proyectos cargados en un solo archivo .aia
-    async function mergeProjects() {
-      if (projects.length < 2) {
-        alert("Necessites afegir almenys dos projectes per fusionar.");
-        return;
-      }
-
-      // Creamos un nuevo ZIP para el proyecto fusionado
-      const mergedZip = new JSZip();
-
-      // Agregamos el archivo project.properties básico
-      const propertiesContent = `#Project properties
-#Wed Jan 01 00:00:00 GMT 2023
-name=ProjecteFusionat
-`;
-      mergedZip.file("youngandroidproject/project.properties", propertiesContent);
-
-      // Iteramos sobre cada proyecto cargado
-      for (const project of projects) {
-        if (!project.zip) continue; // Saltamos proyectos no cargados
-
-        // Usamos el objeto ZIP ya cargado en vez de recargar desde el input
-        const zip = project.zip;
-
-        // Procesamos las pantallas
-        const projectDiv = document.getElementById(project.id);
-        const screenCheckboxes = projectDiv.querySelectorAll('.screens-list input[type="checkbox"]');
-        for (const checkbox of screenCheckboxes) {
-          if (checkbox.checked) {
-            const screenName = checkbox.id;
-            await addFileToZip(zip, mergedZip, `src/${screenName}.scm`, `src/${screenName}.scm`);
-            // Solo se agrega el .bky si existe
-            await addFileToZip(zip, mergedZip, `src/${screenName}.bky`, `src/${screenName}.bky`);
-          }
+            return project;
         }
 
-        // Procesamos los recursos
-        const assetCheckboxes = projectDiv.querySelectorAll('.assets-list input[type="checkbox"]');
-        for (const checkbox of assetCheckboxes) {
-          if (checkbox.checked) {
-            const assetName = checkbox.id;
-            await addFileToZip(zip, mergedZip, `assets/${assetName}`, `assets/${assetName}`);
-          }
+        function updateChecklist(containerId, items, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.map(item => `
+                <div class="form-check">
+                    <input class="form-check-input ${type}-check" type="checkbox" 
+                           id="${item.name}" data-path="${item.path}" checked>
+                    <label class="form-check-label" for="${item.name}">
+                        ${item.name}${type === 'screen' ? ' (Pantalla)' : ''}
+                    </label>
+                </div>
+            `).join('');
         }
-      }
 
-      // Generamos el archivo fusionado y lo descargamos
-      try {
-        const content = await mergedZip.generateAsync({ type: 'blob' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(content);
-        link.download = `projecte-fusionat-${Date.now()}.aia`;
-        link.click();
-      } catch (error) {
-        alert(`Error durant la fusió: ${error.message}`);
-      }
-    }
+        async function mergeProjects() {
+            // Comprovar conflictes
+            const allScreens = [...mainProject.screens, ...secondProject.screens];
+            const screenNames = allScreens.map(s => s.name);
+            const duplicates = screenNames.filter((name, index) => screenNames.indexOf(name) !== index);
+            
+            // Gestionar Screen1 duplicat
+            if (duplicates.includes('Screen1')) {
+                const newName = prompt('Introdueix un nou nom per a Screen1 del segon projecte:');
+                if (newName) screenRenames.set('Screen1', newName);
+            }
 
-    // Función auxiliar para agregar archivos de un ZIP a otro
-    async function addFileToZip(sourceZip, targetZip, originalPath, newPath) {
-      const file = sourceZip.file(originalPath);
-      if (file) {
-        const content = await file.async('uint8array');
-        targetZip.file(newPath, content);
-      }
-    }
+            // Crear ZIP fusionat
+            const mergedZip = new JSZip();
+            
+            // Afegir fitxers de projecte
+            mergedZip.file("youngandroidproject/project.properties", 
+                `#Project properties\nname=ProjecteFusionat\n`);
+            
+            // Processar pantalles
+            await processProject(mainProject, mergedZip);
+            await processProject(secondProject, mergedZip);
 
-    // Agregamos el primer proyecto por defecto al cargar la página
-    addProject();
-  </script>
+            // Generar i descarregar
+            const content = await mergedZip.generateAsync({type: "blob"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `projecte_fusionat_${Date.now()}.aia`;
+            link.click();
+        }
+
+        async function processProject(project, zip) {
+            // Processar pantalles seleccionades
+            document.querySelectorAll('.screen-check:checked').forEach(checkbox => {
+                const screen = project.screens.find(s => s.name === checkbox.id);
+                if (screen) {
+                    zip.file(screen.scmPath, getFileContent(project.zip, screen.scmPath));
+                    zip.file(screen.bkyPath, getFileContent(project.zip, screen.bkyPath));
+                }
+            });
+
+            // Processar recursos seleccionats
+            document.querySelectorAll('.asset-check:checked').forEach(checkbox => {
+                const asset = project.assets.find(a => a.name === checkbox.id);
+                if (asset) {
+                    zip.file(asset.path, getFileContent(project.zip, asset.path));
+                }
+            });
+        }
+
+        async function getFileContent(zip, path) {
+            const file = zip.file(path);
+            return file ? await file.async('uint8array') : null;
+        }
+    </script>
 </body>
 </html>
