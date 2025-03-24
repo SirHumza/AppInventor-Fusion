@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Merge multiple App Inventor projects efficiently">
     <title>App Inventor Fusion</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,6 +18,13 @@
             --background: #ffffff;
             --radius: 12px;
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
@@ -25,7 +33,6 @@
             font-family: 'Inter', system-ui, sans-serif;
             line-height: 1.6;
             min-height: 100vh;
-            margin: 0;
         }
 
         .container {
@@ -44,7 +51,7 @@
             font-size: 2rem;
             font-weight: 700;
             color: var(--primary);
-            margin: 0 0 0.5rem 0;
+            margin-bottom: 0.5rem;
         }
 
         .projects-container {
@@ -60,11 +67,13 @@
             border-radius: var(--radius);
             padding: 1.5rem;
             position: relative;
-            transition: transform 0.2s ease;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
         }
 
         .project-card:hover {
             transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
 
         .remove-project {
@@ -76,12 +85,12 @@
             color: var(--text);
             cursor: pointer;
             font-size: 1.5rem;
-            line-height: 1;
-            transition: color 0.2s ease;
+            transition: var(--transition);
         }
 
         .remove-project:hover {
             color: var(--danger);
+            transform: scale(1.1);
         }
 
         .file-input {
@@ -93,12 +102,23 @@
             cursor: pointer;
             background: #f8f9fa;
             text-align: center;
-            transition: all 0.2s ease;
+            transition: var(--transition);
+            position: relative;
         }
 
-        .file-input:hover {
+        .file-input.dragover {
             border-color: var(--primary);
             background: #f1f8ff;
+        }
+
+        .file-input input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            top: 0;
+            left: 0;
         }
 
         .checklist {
@@ -108,6 +128,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             margin-bottom: 1rem;
+            background: #fff;
         }
 
         .form-check {
@@ -144,11 +165,18 @@
             border-radius: var(--radius);
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s ease;
+            transition: var(--transition);
         }
 
-        .merge-btn:hover {
+        .merge-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .merge-btn:hover:not(:disabled) {
             opacity: 0.9;
+            transform: translateY(-2px);
         }
 
         .add-project-btn {
@@ -160,18 +188,20 @@
             border-radius: var(--radius);
             margin-bottom: 1.5rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--transition);
         }
 
         .add-project-btn:hover {
             border-color: var(--primary);
             color: var(--primary);
+            background: #f1f8ff;
         }
 
         .status-container {
             margin-top: 2rem;
             padding: 1rem;
             border-radius: var(--radius);
+            min-height: 60px;
         }
 
         .github-corner {
@@ -188,11 +218,12 @@
             text-decoration: none;
             box-shadow: var(--shadow);
             z-index: 1000;
-            transition: transform 0.2s ease;
+            transition: var(--transition);
         }
 
         .github-corner:hover {
             transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
 
         @media (max-width: 768px) {
@@ -221,247 +252,423 @@
 
     <div class="container">
         <div class="header">
-            <h1 class="title">Project Fusion</h1>
-            <p>Combine multiple App Inventor projects</p>
+            <h1 class="title">App Inventor Fusion</h1>
+            <p>Merge multiple App Inventor projects seamlessly</p>
         </div>
 
-        <button class="add-project-btn" onclick="addProject()">
-            + Add Project
-        </button>
-
+        <button class="add-project-btn" id="addProjectBtn">+ Add Project</button>
         <div class="projects-container" id="projectsContainer"></div>
-
-        <button class="merge-btn" onclick="mergeProjects()">
-            Merge Projects
-        </button>
-
+        <button class="merge-btn" id="mergeBtn" disabled>Merge Projects</button>
         <div class="status-container" id="status"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
     <script>
-        let projects = [];
-        let nameRegistry = new Set();
-
-        function updateStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerHTML = `
-                <div class="alert alert-${type} ${type === 'danger' ? 'conflict-warning' : ''}">
-                    ${message}
-                </div>
-            `;
-        }
-
-        function addProject() {
-            const projectId = Date.now();
-            const projectNumber = document.querySelectorAll('.project-card').length + 1;
-            
-            const projectCard = document.createElement('div');
-            projectCard.className = 'project-card';
-            projectCard.dataset.projectId = projectId;
-            projectCard.innerHTML = `
-                <button class="remove-project" onclick="removeProject(${projectId})">×</button>
-                <h3>Project ${projectNumber}</h3>
-                <input type="file" class="file-input" accept=".aia">
-                <div class="mt-2">
-                    <h4>Screens</h4>
-                    <div class="checklist" data-type="screens"></div>
-                </div>
-                <div class="mt-2">
-                    <h4>Assets</h4>
-                    <div class="checklist" data-type="assets"></div>
-                </div>
-            `;
-
-            document.getElementById('projectsContainer').appendChild(projectCard);
-            
-            const fileInput = projectCard.querySelector('input[type="file"]');
-            fileInput.addEventListener('change', e => handleFileUpload(e, projectId));
-        }
-
-        async function handleFileUpload(e, projectId) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const project = {
-                id: projectId,
-                zip: null,
-                screens: [],
-                assets: []
-            };
-
-            try {
-                const zip = await JSZip.loadAsync(file);
-                project.zip = zip;
-
-                zip.forEach(relativePath => {
-                    if (relativePath.startsWith('src/') && relativePath.endsWith('.scm')) {
-                        const name = relativePath.split('/').pop().replace('.scm', '');
-                        project.screens.push(createFileEntry(name, relativePath));
-                    } else if (relativePath.startsWith('assets/')) {
-                        const name = relativePath.split('/').pop();
-                        project.assets.push(createFileEntry(name, relativePath));
-                    }
-                });
-
-                detectConflicts(project);
-                updateProjectUI(project);
-                updateProjectsArray(project);
-
-                updateStatus(`Project ${getProjectNumber(projectId)} loaded: ${file.name}`);
-
-            } catch (error) {
-                updateStatus(`Error loading project: ${error.message}`, 'danger');
+        class ProjectManager {
+            constructor() {
+                this.projects = new Map();
+                this.nameRegistry = new Set();
+                this.isMerging = false;
+                this.initEventListeners();
+                this.addInitialProjects();
             }
-        }
 
-        function createFileEntry(name, path) {
-            return {
-                originalName: name,
-                currentName: name,
-                path: path,
-                conflicted: false
-            };
-        }
-
-        function detectConflicts(project) {
-            const allEntries = projects.flatMap(p => [...p.screens, ...p.assets]);
-            
-            project.screens.forEach(screen => {
-                screen.conflicted = allEntries.some(entry => entry.currentName === screen.currentName);
-                if (screen.conflicted) nameRegistry.add(screen.originalName);
-            });
-            
-            project.assets.forEach(asset => {
-                asset.conflicted = allEntries.some(entry => entry.currentName === asset.currentName);
-                if (asset.conflicted) nameRegistry.add(asset.originalName);
-            });
-        }
-
-        function updateProjectUI(project) {
-            const card = document.querySelector(`[data-project-id="${project.id}"]`);
-            
-            ['screens', 'assets'].forEach(type => {
-                const container = card.querySelector(`[data-type="${type}"]`);
-                container.innerHTML = project[type].map(item => `
-                    <div class="form-check ${item.conflicted ? 'conflict-warning' : ''}">
-                        <input class="form-check-input" type="checkbox" checked>
-                        <label class="form-check-label">
-                            ${item.currentName}
-                            ${item.conflicted ? '<i class="fas fa-exclamation-triangle ml-2"></i>' : ''}
-                        </label>
-                    </div>
-                `).join('');
-            });
-        }
-
-        function updateProjectsArray(project) {
-            projects = projects.filter(p => p.id !== project.id);
-            projects.push(project);
-        }
-
-        function removeProject(projectId) {
-            document.querySelector(`[data-project-id="${projectId}"]`).remove();
-            projects = projects.filter(p => p.id !== projectId);
-            
-            document.querySelectorAll('.project-card').forEach((card, index) => {
-                card.querySelector('h3').textContent = `Project ${index + 1}`;
-            });
-            
-            updateStatus('Project removed');
-        }
-
-        async function mergeProjects() {
-            try {
-                if (projects.length < 2) {
-                    updateStatus('Select at least 2 projects to merge', 'warning');
+            initEventListeners() {
+                const addBtn = document.getElementById('addProjectBtn');
+                const mergeBtn = document.getElementById('mergeBtn');
+                
+                if (!addBtn || !mergeBtn) {
+                    console.error('Required DOM elements not found');
                     return;
                 }
 
-                updateStatus('Processing merge...', 'info');
-                const mergedZip = new JSZip();
-                mergedZip.file("youngandroidproject/project.properties", `#Project properties\nname=MergedProject\n`);
+                addBtn.addEventListener('click', () => this.addProject());
+                mergeBtn.addEventListener('click', () => this.mergeProjects());
+            }
 
-                let conflictCount = 0;
-                const usedNames = new Set();
+            updateStatus(message, type = 'info') {
+                const statusDiv = document.getElementById('status');
+                if (!statusDiv) return;
+                
+                statusDiv.innerHTML = `
+                    <div class="alert alert-${type} ${type === 'danger' ? 'conflict-warning' : ''}" role="alert">
+                        ${this.escapeHtml(message)}
+                    </div>
+                `;
+                statusDiv.scrollIntoView({ behavior: 'smooth' });
+            }
 
-                const resolveName = (originalName) => {
-                    let newName = originalName;
-                    let count = 1;
-                    
-                    while(usedNames.has(newName)) {
-                        newName = `${originalName}_${count++}`;
-                        conflictCount++;
-                    }
-                    
-                    usedNames.add(newName);
-                    return newName;
-                };
+            escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
 
-                for (const project of projects) {
-                    for (const screen of project.screens) {
-                        const finalName = resolveName(screen.originalName);
-                        await processScreen(project, screen, finalName, mergedZip);
-                    }
-                    
-                    for (const asset of project.assets) {
-                        const finalName = resolveName(asset.originalName);
-                        await processAsset(project, asset, finalName, mergedZip);
+            addProject() {
+                const projectId = Date.now().toString(); // String for consistency
+                const projectNumber = this.projects.size + 1;
+                const card = this.createProjectCard(projectId, projectNumber);
+                
+                const container = document.getElementById('projectsContainer');
+                if (!container) {
+                    this.updateStatus('Error: Projects container not found', 'danger');
+                    return;
+                }
+                
+                container.appendChild(card);
+                this.setupFileInput(card, projectId);
+            }
+
+            createProjectCard(projectId, projectNumber) {
+                const card = document.createElement('div');
+                card.className = 'project-card';
+                card.dataset.projectId = projectId;
+                card.innerHTML = `
+                    <button class="remove-project" aria-label="Remove project ${projectNumber}">×</button>
+                    <h3>Project ${projectNumber}</h3>
+                    <div class="file-input">
+                        <input type="file" accept=".aia" id="file-${projectId}">
+                        <label for="file-${projectId}">Click or drag .aia file here</label>
+                    </div>
+                    <div class="mt-2">
+                        <h4>Screens</h4>
+                        <div class="checklist" data-type="screens"></div>
+                    </div>
+                    <div class="mt-2">
+                        <h4>Assets</h4>
+                        <div class="checklist" data-type="assets"></div>
+                    </div>
+                `;
+                
+                const removeBtn = card.querySelector('.remove-project');
+                removeBtn.addEventListener('click', () => this.removeProject(projectId));
+                return card;
+            }
+
+            setupFileInput(card, projectId) {
+                const fileInput = card.querySelector('input[type="file"]');
+                if (!fileInput) return;
+
+                fileInput.addEventListener('change', (e) => this.handleFileUpload(e, projectId));
+                
+                const dropArea = card.querySelector('.file-input');
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, (e) => e.preventDefault());
+                });
+
+                dropArea.addEventListener('dragenter', () => dropArea.classList.add('dragover'));
+                dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+                dropArea.addEventListener('drop', (e) => {
+                    dropArea.classList.remove('dragover');
+                    this.handleFileUpload({ target: { files: e.dataTransfer.files } }, projectId);
+                });
+            }
+
+            async handleFileUpload(e, projectId) {
+                const file = e.target.files?.[0];
+                if (!file) {
+                    this.updateStatus('No file selected', 'warning');
+                    return;
+                }
+
+                if (!file.name.endsWith('.aia')) {
+                    this.updateStatus('Please select a valid .aia file', 'warning');
+                    return;
+                }
+
+                try {
+                    const project = await this.processFile(file, projectId);
+                    this.detectConflicts(project);
+                    this.updateProjectUI(project);
+                    this.projects.set(projectId, project);
+                    this.updateMergeButton();
+                    this.updateStatus(`Project ${this.getProjectNumber(projectId)} loaded: ${file.name}`, 'success');
+                } catch (error) {
+                    this.updateStatus(`Error loading project: ${error.message || 'Unknown error'}`, 'danger');
+                    console.error('File upload error:', error);
+                }
+            }
+
+            async processFile(file, projectId) {
+                if (!window.JSZip) {
+                    throw new Error('JSZip library not loaded');
+                }
+
+                const zip = await JSZip.loadAsync(file);
+                if (!zip) {
+                    throw new Error('Failed to parse ZIP file');
+                }
+
+                const project = { id: projectId, zip, screens: [], assets: [], fileName: file.name };
+                const files = Object.keys(zip.files);
+
+                for (const path of files) {
+                    if (path.startsWith('src/') && path.endsWith('.scm')) {
+                        const name = path.split('/').pop().replace('.scm', '');
+                        if (name) project.screens.push(this.createFileEntry(name, path));
+                    } else if (path.startsWith('assets/') && !path.endsWith('/')) {
+                        const name = path.split('/').pop();
+                        if (name) project.assets.push(this.createFileEntry(name, path));
                     }
                 }
 
-                const content = await mergedZip.generateAsync({ type: "blob" });
-                triggerDownload(content);
-                
-                showMergeResult(conflictCount);
+                if (project.screens.length === 0 && project.assets.length === 0) {
+                    throw new Error('No valid screens or assets found in project');
+                }
 
+                return project;
+            }
+
+            createFileEntry(name, path) {
+                return {
+                    originalName: name,
+                    currentName: name,
+                    path,
+                    conflicted: false,
+                    selected: true
+                };
+            }
+
+            detectConflicts(project) {
+                const allEntries = Array.from(this.projects.values())
+                    .filter(p => p.id !== project.id)
+                    .flatMap(p => [...p.screens, ...p.assets]);
+
+                const checkConflicts = (items) => {
+                    items.forEach(item => {
+                        item.conflicted = allEntries.some(entry => entry.currentName === item.currentName);
+                        if (item.conflicted) this.nameRegistry.add(item.originalName);
+                    });
+                };
+
+                checkConflicts(project.screens);
+                checkConflicts(project.assets);
+            }
+
+            updateProjectUI(project) {
+                const card = document.querySelector(`[data-project-id="${project.id}"]`);
+                if (!card) return;
+
+                ['screens', 'assets'].forEach(type => {
+                    const container = card.querySelector(`[data-type="${type}"]`);
+                    if (!container) return;
+
+                    container.innerHTML = project[type].map((item, index) => `
+                        <div class="form-check ${item.conflicted ? 'conflict-warning' : ''}">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="${type}-${project.id}-${index}"
+                                   ${item.selected ? 'checked' : ''}>
+                            <label class="form-check-label" for="${type}-${project.id}-${index}">
+                                ${this.escapeHtml(item.currentName)}
+                                ${item.conflicted ? '<i class="fas fa-exclamation-triangle ms-2"></i>' : ''}
+                            </label>
+                        </div>
+                    `).join('');
+
+                    container.querySelectorAll('.form-check-input').forEach((checkbox, index) => {
+                        checkbox.addEventListener('change', () => {
+                            project[type][index].selected = checkbox.checked;
+                            this.updateMergeButton();
+                        });
+                    });
+                });
+            }
+
+            removeProject(projectId) {
+                const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                if (!card) return;
+
+                card.remove();
+                this.projects.delete(projectId);
+                this.nameRegistry.clear();
+                this.projects.forEach(project => this.detectConflicts(project));
+                this.updateProjectNumbers();
+                this.updateMergeButton();
+                this.updateStatus('Project removed', 'info');
+            }
+
+            updateProjectNumbers() {
+                const cards = document.querySelectorAll('.project-card');
+                cards.forEach((card, index) => {
+                    const h3 = card.querySelector('h3');
+                    if (h3) h3.textContent = `Project ${index + 1}`;
+                });
+            }
+
+            updateMergeButton() {
+                const mergeBtn = document.getElementById('mergeBtn');
+                if (!mergeBtn) return;
+
+                const validProjects = Array.from(this.projects.values()).filter(p => 
+                    p.screens.some(s => s.selected) || p.assets.some(a => s.selected)
+                );
+                mergeBtn.disabled = validProjects.length < 2 || this.isMerging;
+            }
+
+            async mergeProjects() {
+                if (this.isMerging) return;
+                this.isMerging = true;
+                this.updateMergeButton();
+
+                try {
+                    const validProjects = Array.from(this.projects.values()).filter(p => 
+                        p.screens.some(s => s.selected) || p.assets.some(a => a.selected)
+                    );
+
+                    if (validProjects.length < 2) {
+                        this.updateStatus('Please select at least 2 projects with content to merge', 'warning');
+                        return;
+                    }
+
+                    this.updateStatus('Processing merge...', 'info');
+                    const mergedZip = new JSZip();
+                    mergedZip.file("youngandroidproject/project.properties", 
+                        `#Project properties\nname=MergedProject_${Date.now()}\n`);
+
+                    let conflictCount = 0;
+                    const usedNames = new Set();
+
+                    const resolveName = (originalName) => {
+                        let newName = originalName;
+                        let count = 1;
+                        while (usedNames.has(newName)) {
+                            newName = `${originalName}_${count++}`;
+                            conflictCount++;
+                        }
+                        usedNames.add(newName);
+                        return newName;
+                    };
+
+                    for (const project of validProjects) {
+                        await Promise.all([
+                            ...project.screens
+                                .filter(s => s.selected)
+                                .map(screen => this.processScreen(project, screen, resolveName(screen.originalName), mergedZip)),
+                            ...project.assets
+                                .filter(a => a.selected)
+                                .map(asset => this.processAsset(project, asset, resolveName(asset.originalName), mergedZip))
+                        ]);
+                    }
+
+                    const content = await mergedZip.generateAsync({ 
+                        type: "blob",
+                        compression: "DEFLATE",
+                        compressionOptions: { level: 6 }
+                    });
+
+                    this.triggerDownload(content);
+                    this.showMergeResult(conflictCount);
+
+                } catch (error) {
+                    this.updateStatus(`Merge failed: ${error.message || 'Unknown error'}`, 'danger');
+                    console.error('Merge error:', error);
+                } finally {
+                    this.isMerging = false;
+                    this.updateMergeButton();
+                }
+            }
+
+            async processScreen(project, screen, finalName, mergedZip) {
+                try {
+                    const bkyPath = screen.path.replace('.scm', '.bky');
+                    const [scmContent, bkyContent] = await Promise.all([
+                        project.zip.file(screen.path)?.async('string'),
+                        project.zip.file(bkyPath)?.async('string')
+                    ]);
+
+                    if (!scmContent || !bkyContent) {
+                        throw new Error(`Missing required files for screen: ${screen.originalName}`);
+                    }
+
+                    const updateContent = (content) => content
+                        .replace(/"\$Name"\s*:\s*".*?"/, `"$Name":"${finalName}"`)
+                        .replace(/"Title"\s*:\s*".*?"/, `"Title":"${finalName}"`);
+
+                    mergedZip.file(`src/${finalName}.scm`, updateContent(scmContent));
+                    mergedZip.file(`src/${finalName}.bky`, updateContent(bkyContent));
+                } catch (error) {
+                    console.warn(`Failed to process screen ${screen.originalName}: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            async processAsset(project, asset, finalName, mergedZip) {
+                try {
+                    const content = await project.zip.file(asset.path)?.async('uint8array');
+                    if (!content) {
+                        throw new Error(`Asset not found: ${asset.originalName}`);
+                    }
+                    mergedZip.file(`assets/${finalName}`, content);
+                } catch (error) {
+                    console.warn(`Failed to process asset ${asset.originalName}: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            triggerDownload(content) {
+                try {
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(content);
+                    link.href = url;
+                    link.download = `merged_project_${Date.now()}.aia`;
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        URL.revokeObjectURL(url);
+                        document.body.removeChild(link);
+                    }, 0);
+                } catch (error) {
+                    this.updateStatus('Failed to initiate download', 'danger');
+                    console.error('Download error:', error);
+                }
+            }
+
+            showMergeResult(conflictCount) {
+                let message = 'Merge completed successfully!';
+                if (conflictCount > 0) {
+                    message += ` (${conflictCount} conflicts resolved automatically)`;
+                    this.updateStatus(message, 'warning');
+                } else {
+                    this.updateStatus(message, 'success');
+                }
+            }
+
+            getProjectNumber(projectId) {
+                const cards = Array.from(document.querySelectorAll('.project-card'));
+                const index = cards.findIndex(card => card.dataset.projectId === projectId);
+                return index >= 0 ? index + 1 : 1;
+            }
+
+            addInitialProjects() {
+                try {
+                    this.addProject();
+                    this.addProject();
+                } catch (error) {
+                    this.updateStatus('Failed to initialize projects', 'danger');
+                    console.error('Initial projects error:', error);
+                }
+            }
+        }
+
+        // Initialize with error handling
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                new ProjectManager();
             } catch (error) {
-                updateStatus(`Error: ${error.message}`, 'danger');
+                console.error('Initialization failed:', error);
+                const status = document.getElementById('status');
+                if (status) {
+                    status.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            Application failed to initialize. Please refresh the page.
+                        </div>
+                    `;
+                }
             }
-        }
-
-        async function processScreen(project, screen, finalName, mergedZip) {
-            const scmContent = await project.zip.file(screen.path).async('string');
-            const bkyContent = await project.zip.file(screen.path.replace('.scm', '.bky')).async('string');
-            
-            const updatedScm = scmContent
-                .replace(/"\$Name"\s*:\s*".*?"/, `"$Name":"${finalName}"`)
-                .replace(/"Title"\s*:\s*".*?"/, `"Title":"${finalName}"`);
-            
-            const updatedBky = bkyContent
-                .replace(/"\$Name"\s*:\s*".*?"/, `"$Name":"${finalName}"`)
-                .replace(/"Title"\s*:\s*".*?"/, `"Title":"${finalName}"`);
-
-            mergedZip.file(`src/${finalName}.scm`, updatedScm);
-            mergedZip.file(`src/${finalName}.bky`, updatedBky);
-        }
-
-        async function processAsset(project, asset, finalName, mergedZip) {
-            const content = await project.zip.file(asset.path).async('uint8array');
-            mergedZip.file(`assets/${finalName}`, content);
-        }
-
-        function triggerDownload(content) {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = `merged_project_${Date.now()}.aia`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function showMergeResult(conflictCount) {
-            let message = 'Merge completed successfully!';
-            if (conflictCount > 0) {
-                message += ` (${conflictCount} conflicts resolved)`;
-                updateStatus(message, 'warning');
-            } else {
-                updateStatus(message, 'success');
-            }
-        }
-
-        addProject();
-        addProject();
+        });
     </script>
 </body>
 </html>
